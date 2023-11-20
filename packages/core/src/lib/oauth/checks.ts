@@ -184,9 +184,9 @@ export const state = {
 
 const NONCE_MAX_AGE = 60 * 15 // 15 minutes in seconds
 export const nonce = {
-  async create(options: InternalOptions<"oidc">) {
-    if (!options.provider.checks.includes("nonce")) return
-    const value = o.generateRandomNonce()
+  async create(options: InternalOptions<"oidc">, existingNonce?: string) {
+    if (!options.provider.checks.includes("nonce") && !existingNonce) return
+    const value = existingNonce ?? o.generateRandomNonce()
     const maxAge = NONCE_MAX_AGE
     const cookie = await signCookie("nonce", value, maxAge, options)
     return { cookie, value }
@@ -204,10 +204,10 @@ export const nonce = {
     options: InternalOptions<"oidc">
   ): Promise<string | undefined> {
     const { provider } = options
-
-    if (!provider?.checks?.includes("nonce")) return
-
+    
     const nonce = cookies?.[options.cookies.nonce.name]
+    if (!provider?.checks?.includes("nonce") && !nonce) return
+
     if (!nonce) throw new InvalidCheck("Nonce cookie was missing.")
 
     const value = await decode<CheckPayload>({ ...options.jwt, token: nonce })
